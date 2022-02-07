@@ -2,7 +2,7 @@
 class simpleMailTool
 {
   private $host;
-  private $port = 25;
+  private $port;
   private $user;
   private $pass;
   private $debug;
