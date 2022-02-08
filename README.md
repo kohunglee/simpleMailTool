@@ -38,3 +38,11 @@ DKIM 是一种验证邮箱是否伪造的方式。目前这类方式被广泛应
 # 注意
 
 本程序还处于测试阶段，请勿用于生产环境
+
+参考资料：
+
+https://stackoverflow.com/questions/4712553/signing-mails-sent-through-smtp-with-dkim#comment5203489_4712553
+
+https://stackoverflow.com/questions/2799611/setting-up-domainkeys-dkim-in-a-php-based-smtp-client
+
+https://support.google.com/a/answer/174124?hl=zh-Hans&ref_topic=2752442
