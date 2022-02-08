@@ -8,6 +8,7 @@ class simpleMailTool
   private $debug; // 是否需要 debug
   private $sock;  // sock 会话
 
+
   /**
    * 初始化邮件发送系统
    *
@@ -30,7 +31,7 @@ class simpleMailTool
     $this->pass = base64_encode($pass);  // 密码需要用 base64 编码（用户名也需要编码，不过是用到的时候再编码）
     $this->debug= $debug;
 
-    if($debug){ echo "调试已打开"; }
+    if($debug){ echo "调试已打开\n"; }
 
     $this->connectServer();              // 连接 SMTP 服务器
   }
@@ -58,15 +59,17 @@ class simpleMailTool
       exit('error:请填写 stmp 服务器地址或 stmp 端口号！');
     }
     $response = fgets($this->sock);                    // 读取响应信息
-    $this->debug("STMP 服务器的返回信息".$response);
+    $this->debug("SMTP 服务器地址：".$this->host.' 端口：'.$this->port);
+    $this->debug("连接 STMP 服务器的返回信息：".$response);
 
-    if(substr($response,0,3) != '220'){             // 如果响应信息中包有 220 则连接成功
+    if(substr($response,0,3) != '220'){                 // 如果响应信息中包有 220 则连接成功
       exit("error:请检查填写的 stmp 服务器地址或 stmp 端口号是否正确！");
     }
   }
 
+
   /**
-   * 向 SMTP 服务器发送命令的函数
+   * 向 SMTP 服务器发送命令
    *
    * @param string $cmd      命令内容
    * @param int $return_code 预期返回码,如果发送命令后服务器返回信息中包含 $return_code 则代表命令按预期执行
@@ -74,7 +77,7 @@ class simpleMailTool
   protected function sendCommand($cmd,$return_code){
     fwrite($this->sock,$cmd);                                      // 发送命令
     $response = fgets($this->sock);                                // 获取服务器的返回信息
-    $this->debug('发送的命令:'.$cmd .';服务器的返回信息:'.$response);
+    $this->debug('发送的命令：'.$cmd .';服务器的返回信息：'.$response);
 
     if(substr($response,0,3) != $return_code){
       return false; 
@@ -86,13 +89,13 @@ class simpleMailTool
   /**
    * 公共 - 验证 SMTP 用户名和密码是否正确，如果正确，返回 true ，否则返回 false
    */
-  public function verifyUser($from){
+  public function verifyUser(){
 
     $this->sendCommand("HELO ".$this->host."\r\n",250);
     $this->sendCommand("AUTH LOGIN\r\n",250);
     $this->sendCommand(base64_encode($this->user)."\r\n",250);
     $this->sendCommand($this->pass."\r\n",334);
-    $this->sendCommand("MAIL FROM:<".$from.">\r\n",334);
+    $this->sendCommand("MAIL FROM:<verifyUser>\r\n",334);
 
     $ret = $this->sendCommand("RCPT TO:<test@gmail.com>\r\n",235);
 
