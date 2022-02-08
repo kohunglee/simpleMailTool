@@ -12,10 +12,10 @@ class simpleMailTool
   /**
    * 初始化邮件发送系统
    *
-   * @param String $host  邮件（STMP）服务器地址，如 smtp.163.com、smtp.qq.com
-   * @param int    $port  邮件（STMP）端口，一般为 25，加密传输 (SSL/TLS) 端口要询问服务商
-   * @param String $user  邮件（STMP）用户名
-   * @param String $pass  邮件（STMP）密码
+   * @param String $host  邮件（SMTP）服务器地址，如 smtp.163.com、smtp.qq.com
+   * @param int    $port  邮件（SMTP）端口，一般为 25，加密传输 (SSL/TLS) 端口要询问服务商，一般为 465 或者 587
+   * @param String $user  邮件（SMTP）用户名
+   * @param String $pass  邮件（SMTP）密码
    * @param String $debug 是否输出调试信息，默认关闭 false
    */
   public function __construct($host,$port,$user,$pass,$debug = false)
@@ -28,6 +28,7 @@ class simpleMailTool
 
     $this->port = $port;
     $this->user = $user;
+    
     $this->pass = base64_encode($pass);  // 密码需要用 base64 编码（用户名也需要编码，不过是用到的时候再编码）
     $this->debug= $debug;
 
@@ -44,7 +45,7 @@ class simpleMailTool
    */
   protected function debug($message){
     if($this->debug){
-      echo '<p><b>debug: </b>'. $message . PHP_EOL .'</p>';
+      echo '<p><b>debug: </b>'. htmlentities($message,ENT_QUOTES,"UTF-8");$message . PHP_EOL .'</p>';
     }
   }
 
@@ -53,17 +54,16 @@ class simpleMailTool
    * 连接 SMTP 服务器
    */
   protected function connectServer(){
-    
     $this->sock = fsockopen($this->host,$this->port);  // 根据地址和端口，通过 socket 连接服务器
     if(!$this->sock){
-      exit('error:请填写 stmp 服务器地址或 stmp 端口号！');
+      exit('error:请填写 SMTP 服务器地址或 SMTP 端口号！');
     }
     $response = fgets($this->sock);                    // 读取响应信息
     $this->debug("SMTP 服务器地址：".$this->host.' 端口：'.$this->port);
-    $this->debug("连接 STMP 服务器的返回信息：".$response);
+    $this->debug("连接 SMTP 服务器的返回信息：".$response);
 
     if(substr($response,0,3) != '220'){                 // 如果响应信息中包有 220 则连接成功
-      exit("error:请检查填写的 stmp 服务器地址或 stmp 端口号是否正确！");
+      exit("error:请检查填写的 SMTP 服务器地址或 SMTP 端口号是否正确！");
     }
   }
 
@@ -71,15 +71,14 @@ class simpleMailTool
   /**
    * 向 SMTP 服务器发送命令
    *
-   * @param string $cmd      命令内容
-   * @param int $return_code 预期返回码,如果发送命令后服务器返回信息中包含 $return_code 则代表命令按预期执行
+   * @param string $cmd 命令内容
    */
-  protected function sendCommand($cmd,$return_code){
+  protected function sendCommand($cmd){
     fwrite($this->sock,$cmd);                                      // 发送命令
     $response = fgets($this->sock);                                // 获取服务器的返回信息
     $this->debug('发送的命令：'.$cmd .';服务器的返回信息：'.$response);
 
-    if(substr($response,0,3) != $return_code){
+    if(substr($response,0,3) == 503){
       return false; 
     }
     return true;
@@ -90,14 +89,14 @@ class simpleMailTool
    * 公共 - 验证 SMTP 用户名和密码是否正确，如果正确，返回 true ，否则返回 false
    */
   public function verifyUser(){
+    
+    $this->sendCommand("HELO ".$this->host."\r\n");
+    $this->sendCommand("AUTH LOGIN\r\n");
+    $this->sendCommand(base64_encode($this->user)."\r\n");
+    $this->sendCommand($this->pass."\r\n");
+    $this->sendCommand("MAIL FROM:<".$this->user.">\r\n");
 
-    $this->sendCommand("HELO ".$this->host."\r\n",250);
-    $this->sendCommand("AUTH LOGIN\r\n",250);
-    $this->sendCommand(base64_encode($this->user)."\r\n",250);
-    $this->sendCommand($this->pass."\r\n",334);
-    $this->sendCommand("MAIL FROM:<verifyUser>\r\n",334);
-
-    $ret = $this->sendCommand("RCPT TO:<test@gmail.com>\r\n",235);
+    $ret = $this->sendCommand("RCPT TO:<test@qq.com>\r\n");
 
     return $ret;
   }
@@ -114,19 +113,19 @@ class simpleMailTool
   public function sendMail($from,$to,$subject,$body){
 
     // 按照 SMTP 协议规则封装简单的邮件内容
-    $content = 'From:'.$from."\r\n".'To:'.$to."\r\n".'Subject:'.$subject."\r\n".'Content-Type: Text/html;'."\r\n".'charset="UTF-8" '."\r\n\r\n".$body;
+    $content = 'From:'.$from." <".$this->user.">\r\n".'To:'.$to."\r\n".'Subject:'.$subject."\r\n".'Content-Type: text/html; charset=UTF-8 '."\r\n\r\n".$body;
 
     $this->debug("发送的邮件内容：".$content."\n");
 
-    $this->sendCommand("HELO ".$this->host."\r\n",250);
-    $this->sendCommand("AUTH LOGIN\r\n",250);
-    $this->sendCommand(base64_encode($this->user)."\r\n",250);
-    $this->sendCommand($this->pass."\r\n",334);
-    $this->sendCommand("MAIL FROM:<".$this->user.">\r\n",334);
-    $this->sendCommand("RCPT TO:<".$to.">\r\n",235);
-    $this->sendCommand("DATA\r\n",250);
-    $this->sendCommand($content."\r\n.\r\n",250);
-    $this->sendCommand("QUIT\r\n",354);
+    $this->sendCommand("HELO ".$this->host."\r\n");
+    $this->sendCommand("AUTH LOGIN\r\n");
+    $this->sendCommand(base64_encode($this->user)."\r\n");
+    $this->sendCommand($this->pass."\r\n");
+    $this->sendCommand("MAIL FROM:<".$this->user.">\r\n");
+    $this->sendCommand("RCPT TO:<".$to.">\r\n");
+    $this->sendCommand("DATA\r\n");
+    $this->sendCommand($content."\r\n.\r\n");
+    $this->sendCommand("QUIT\r\n");
   }
 
 
