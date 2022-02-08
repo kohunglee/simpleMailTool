@@ -3,12 +3,12 @@ require_once 'simpleMailTool.php';
 
 $port = 465;               // 端口
 $user = '46831392@qq.com'; // smtp用户名
-$pass = '--------------';// smtp密码
+$pass = '--------------';  // smtp密码
 $host = 'smtp.qq.com';     // 服务器地址
 
 $from   = 'kohunglee';         // 发件人昵称
 $to     = '2528852314@qq.com'; // 收件人地址
-$subjet = '标题标题';           // 信件标题
+$subjet = '信件标题';           // 信件标题
 $body   = '<h1>hi</h1>the mail sent successful';           // 信件正文
 
 $test = new simpleMailTool($host,$port,$user,$pass,true);  // 关闭调试只需将最后一个参数删去
