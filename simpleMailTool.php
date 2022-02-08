@@ -1,15 +1,15 @@
 <?php
 class simpleMailTool
 {
-  private $host;
-  private $port;
-  private $user;
-  private $pass;
-  private $debug;
-  private $sock;
+  private $host;  // 地址
+  private $port;  // 端口
+  private $user;  // 用户名
+  private $pass;  // 密码
+  private $debug; // 是否需要 debug
+  private $sock;  // sock 会话
 
   /**
-   * 构造函数 - 初始化邮件发送系统
+   * 初始化邮件发送系统
    *
    * @param String $host  邮件（STMP）服务器地址，如 smtp.163.com、smtp.qq.com
    * @param int    $port  邮件（STMP）端口，一般为 25，加密传输 (SSL/TLS) 端口要询问服务商
@@ -28,7 +28,7 @@ class simpleMailTool
     $this->port = $port;
     $this->user = $user;
     $this->pass = base64_encode($pass);  // 密码需要用 base64 编码（用户名也需要编码，不过是用到的时候再编码）
-    $this->debug = $debug;
+    $this->debug= $debug;
 
     if($debug){ echo "调试已打开"; }
 
@@ -60,11 +60,10 @@ class simpleMailTool
     $response = fgets($this->sock);                    // 读取响应信息
     $this->debug("STMP 服务器的返回信息".$response);
 
-    if(strstr($response,'220') === false){             // 如果响应信息中包有 220 则连接成功
+    if(substr($response,0,3) != '220'){             // 如果响应信息中包有 220 则连接成功
       exit("error:请检查填写的 stmp 服务器地址或 stmp 端口号是否正确！");
     }
   }
-
 
   /**
    * 向 SMTP 服务器发送命令的函数
@@ -77,7 +76,7 @@ class simpleMailTool
     $response = fgets($this->sock);                                // 获取服务器的返回信息
     $this->debug('发送的命令:'.$cmd .';服务器的返回信息:'.$response);
 
-    if(strstr($response,$return_code) === false){
+    if(substr($response,0,3) != $return_code){
       return false; 
     }
     return true;
@@ -85,7 +84,7 @@ class simpleMailTool
 
 
   /**
-   * 验证 SMTP 用户名和密码是否正确，如果正确，返回 true ，否则返回 false
+   * 公共 - 验证 SMTP 用户名和密码是否正确，如果正确，返回 true ，否则返回 false
    */
   public function verifyUser($from){
 
@@ -102,7 +101,7 @@ class simpleMailTool
 
 
   /**
-   * 发送邮件
+   * 公共 - 发送邮件
    *
    * @param string $to 发送到的邮件地址
    * @param string $subject 信件标题
@@ -111,9 +110,10 @@ class simpleMailTool
    */
   public function sendMail($from,$to,$subject,$body){
 
+    // 按照 SMTP 协议规则封装简单的邮件内容
     $content = 'From:'.$from."\r\n".'To:'.$to."\r\n".'Subject:'.$subject."\r\n".'Content-Type: Text/html;'."\r\n".'charset="UTF-8" '."\r\n\r\n".$body;
 
-    echo "发送的邮件内容：".$content."<<<";
+    $this->debug("发送的邮件内容：".$content."\n");
 
     $this->sendCommand("HELO ".$this->host."\r\n",250);
     $this->sendCommand("AUTH LOGIN\r\n",250);
